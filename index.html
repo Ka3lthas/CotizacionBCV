@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dólar BCV Venezuela - Tasa en Tiempo Real</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1a1a2e;
+            --secondary: #16213e;
+            --accent-yellow: #FCD116;
+            --accent-blue: #003893;
+            --accent-red: #CF142B;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b8;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --success: #00d68f;
+            --warning: #ffaa00;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .bg-pattern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .bg-pattern::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at 20% 50%, rgba(0, 56, 147, 0.15) 0%, transparent 50%),
+                        radial-gradient(ellipse at 80% 20%, rgba(252, 209, 22, 0.08) 0%, transparent 50%),
+                        radial-gradient(ellipse at 50% 80%, rgba(207, 20, 43, 0.08) 0%, transparent 50%);
+            animation: bgFloat 20s ease-in-out infinite;
+        }
+
+        @keyframes bgFloat {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(2%, -2%) rotate(1deg); }
+            66% { transform: translate(-1%, 1%) rotate(-0.5deg); }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 40px 0 30px;
+        }
+
+        .header-flag {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .header-flag span {
+            width: 40px;
+            height: 6px;
+            border-radius: 3px;
+        }
+
+        .flag-yellow { background: var(--accent-yellow); }
+        .flag-blue { background: var(--accent-blue); }
+        .flag-red { background: var(--accent-red); }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #ffffff 0%, #a0a0b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* Rate Card */
+        .rate-card {
+            background: linear-gradient(135deg, rgba(0, 56, 147, 0.2) 0%, rgba(22, 33, 62, 0.8) 100%);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 32px;
+            margin-bottom: 24px;
+            backdrop-filter: blur(20px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .rate-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(252, 209, 22, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        .rate-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .rate-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .bcv-badge {
+            background: linear-gradient(135deg, var(--accent-yellow), #e6b800);
+            color: #1a1a2e;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+        }
+
+        .rate-title {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .rate-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .status-dot.loading {
+            background: var(--warning);
+        }
+
+        .status-dot.error {
+            background: var(--accent-red);
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0, 214, 143, 0.4); }
+            50% { opacity: 0.8; box-shadow: 0 0 0 8px rgba(0, 214, 143, 0); }
+        }
+
+        .rate-value {
+            font-size: 3.5rem;
+            font-weight: 900;
+            letter-spacing: -2px;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .rate-value .currency {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--accent-yellow);
+            vertical-align: top;
+            margin-right: 4px;
+        }
+
+        .rate-value .decimal {
+            font-size: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .rate-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .rate-update {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .update-time {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .refresh-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 8px 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .refresh-btn:active {
+            transform: translateY(0);
+        }
+
+        .refresh-btn.loading {
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        .refresh-btn .spin {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Converter Card */
+        .converter-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 32px;
+            backdrop-filter: blur(20px);
+            margin-bottom: 24px;
+        }
+
+        .converter-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .converter-title svg {
+            color: var(--accent-yellow);
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .input-label span {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .input-label .currency-tag {
+            font-size: 0.75rem;
+            padding: 3px 10px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-secondary);
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper .prefix {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--accent-yellow);
+            pointer-events: none;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.04);
+            border: 2px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 18px 18px 18px 52px;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: white;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .input-wrapper input:focus {
+            border-color: var(--accent-blue);
+            background: rgba(0, 56, 147, 0.08);
+            box-shadow: 0 0 0 4px rgba(0, 56, 147, 0.15);
+        }
+
+        .input-wrapper input::placeholder {
+            color: rgba(255, 255, 255, 0.15);
+            font-weight: 400;
+        }
+
+        .swap-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 24px 0;
+        }
+
+        .swap-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-blue), #0047ab);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid var(--primary);
+        }
+
+        .swap-icon:hover {
+            transform: rotate(180deg);
+            box-shadow: 0 0 20px rgba(0, 56, 147, 0.4);
+        }
+
+        .swap-icon svg {
+            color: white;
+            width: 20px;
+            height: 20px;
+        }
+
+        .result-display {
+            background: linear-gradient(135deg, rgba(0, 214, 143, 0.08) 0%, rgba(0, 56, 147, 0.08) 100%);
+            border: 1px solid rgba(0, 214, 143, 0.15);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .result-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .result-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--success);
+            letter-spacing: -1px;
+        }
+
+        .result-value .result-currency {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: rgba(0, 214, 143, 0.7);
+            margin-right: 4px;
+        }
+
+        .result-empty {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        /* Quick amounts */
+        .quick-amounts {
+            margin-top: 20px;
+        }
+
+        .quick-amounts-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+
+        .quick-btns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .quick-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
+        }
+
+        .quick-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        /* Info cards */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .info-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .info-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .info-card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 14px;
+        }
+
+        .info-card-icon.yellow { background: rgba(252, 209, 22, 0.15); color: var(--accent-yellow); }
+        .info-card-icon.blue { background: rgba(0, 56, 147, 0.2); color: #4d8bff; }
+        .info-card-icon.green { background: rgba(0, 214, 143, 0.15); color: var(--success); }
+        .info-card-icon.red { background: rgba(207, 20, 43, 0.15); color: #ff6b7a; }
+
+        .info-card h3 {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        .info-card p {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        /* Manual rate input */
+        .manual-rate {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .manual-rate h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .manual-input-row {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .manual-input-group {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .manual-input-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .manual-input-group input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 1rem;
+            color: white;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .manual-input-group input:focus {
+            border-color: var(--accent-yellow);
+        }
+
+        .apply-btn {
+            background: linear-gradient(135deg, var(--accent-yellow), #e6b800);
+            color: var(--primary);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 700;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .apply-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(252, 209, 22, 0.3);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 30px 0;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        .footer a {
+            color: var(--accent-yellow);
+            text-decoration: none;
+        }
+
+        /* Loading skeleton */
+        .skeleton {
+            background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 8px;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .skeleton-text {
+            height: 20px;
+            width: 120px;
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 14px 24px;
+            border-radius: 16px;
+            font-size: 0.9rem;
+            z-index: 1000;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.success { border-color: rgba(0, 214, 143, 0.3); }
+        .toast.error { border-color: rgba(207, 20, 43, 0.3); }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .container {
+                padding: 16px;
+            }
+
+            .header {
+                padding: 24px 0 20px;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .rate-card, .converter-card {
+                padding: 24px;
+            }
+
+            .rate-value {
+                font-size: 2.8rem;
+            }
+
+            .result-value {
+                font-size: 2rem;
+            }
+
+            .input-wrapper input {
+                font-size: 1.4rem;
+                padding: 16px 16px 16px 44px;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.6s ease forwards;
+        }
+
+        .fade-in-delay {
+            animation: fadeIn 0.6s ease 0.2s forwards;
+            opacity: 0;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .number-change {
+            animation: numberFlash 0.5s ease;
+        }
+
+        @keyframes numberFlash {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; color: var(--accent-yellow); }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="header fade-in">
+            <div class="header-flag">
+                <span class="flag-yellow"></span>
+                <span class="flag-blue"></span>
+                <span class="flag-red"></span>
+            </div>
+            <h1>Tasa del Dólar BCV</h1>
+            <p>Conversión USD a Bolívares en tiempo real</p>
+        </header>
+
+        <!-- Rate Card -->
+        <div class="rate-card fade-in-delay">
+            <div class="rate-header">
+                <div class="rate-label">
+                    <span class="bcv-badge">BCV</span>
+                    <span class="rate-title">Tasa de cambio oficial</span>
+                </div>
+                <div class="rate-status" id="rateStatus">
+                    <span class="status-dot loading" id="statusDot"></span>
+                    <span id="statusText">Cargando...</span>
+                </div>
+            </div>
+
+            <div id="rateDisplay">
+                <div class="rate-value skeleton" style="width: 200px; height: 56px;"></div>
+            </div>
+
+            <div class="rate-update">
+                <div class="update-time">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <span id="lastUpdate">--</span>
+                </div>
+                <button class="refresh-btn" id="refreshBtn" onclick="fetchRate()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                    Actualizar
+                </button>
+            </div>
+        </div>
+
+        <!-- Converter Card -->
+        <div class="converter-card fade-in-delay">
+            <div class="converter-title">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 9v6"/><path d="M9 12h6"/></svg>
+                Calculadora de Conversión
+            </div>
+
+            <div class="input-group">
+                <div class="input-label">
+                    <span>Montos en Dólares</span>
+                    <span class="currency-tag">USD 🇺🇸</span>
+                </div>
+                <div class="input-wrapper">
+                    <span class="prefix">$</span>
+                    <input type="number" id="usdInput" placeholder="0.00" step="any" min="0" oninput="convertCurrency()" autofocus>
+                </div>
+            </div>
+
+            <div class="swap-section">
+                <div class="swap-icon" onclick="swapValues()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+                </div>
+            </div>
+
+            <div class="result-display" id="resultDisplay">
+                <div class="result-label">Equivale en Bolívares</div>
+                <div class="result-value">
+                    <span class="result-currency">Bs.</span>
+                    <span id="resultValue" class="result-empty">0,00</span>
+                </div>
+            </div>
+
+            <div class="quick-amounts">
+                <div class="quick-amounts-label">Montos rápidos:</div>
+                <div class="quick-btns">
+                    <button class="quick-btn" onclick="setQuickAmount(1)">$1</button>
+                    <button class="quick-btn" onclick="setQuickAmount(5)">$5</button>
+                    <button class="quick-btn" onclick="setQuickAmount(10)">$10</button>
+                    <button class="quick-btn" onclick="setQuickAmount(20)">$20</button>
+                    <button class="quick-btn" onclick="setQuickAmount(50)">$50</button>
+                    <button class="quick-btn" onclick="setQuickAmount(100)">$100</button>
+                    <button class="quick-btn" onclick="setQuickAmount(500)">$500</button>
+                    <button class="quick-btn" onclick="setQuickAmount(1000)">$1,000</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Cards -->
+        <div class="info-grid fade-in-delay">
+            <div class="info-card">
+                <div class="info-card-icon yellow">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </div>
+                <h3>Fuente Oficial</h3>
+                <p>Banco Central de Venezuela</p>
+            </div>
+            <div class="info-card">
+                <div class="info-card-icon blue">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                </div>
+                <h3>Actualización</h3>
+                <p id="updateInfo">Automática cada hora</p>
+            </div>
+            <div class="info-card">
+                <div class="info-card-icon green">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <h3>Tasa Confiable</h3>
+                <p>Basada en BCV</p>
+            </div>
+        </div>
+
+        <!-- Manual Rate -->
+        <div class="manual-rate fade-in-delay">
+            <h3>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Tasa Personalizada
+            </h3>
+            <div class="manual-input-row">
+                <div class="manual-input-group">
+                    <label>Ingresar tasa manualmente (Bs. por $1)</label>
+                    <input type="number" id="manualRate" placeholder="Ej: 85.50" step="any" min="0">
+                </div>
+                <button class="apply-btn" onclick="applyManualRate()">Aplicar Tasa</button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Datos referenciales basados en la tasa oficial del BCV</p>
+            <p style="margin-top: 6px;">Los valores pueden variar. Consulte siempre fuentes oficiales.</p>
+        </footer>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <span id="toastIcon">✅</span>
+        <span id="toastMsg">Tasa actualizada</span>
+    </div>
+
+    <script>
+        let currentRate = 0;
+        let lastUpdateTime = '';
+
+        // Format number with Venezuelan locale
+        function formatNumber(num, decimals = 2) {
+            return new Intl.NumberFormat('es-VE', {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals
+            }).format(num);
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMsg.textContent = message;
+            toastIcon.textContent = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+            toast.className = `toast ${type} show`;
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Set status
+        function setStatus(status, text) {
+            const dot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+
+            dot.className = 'status-dot';
+            if (status === 'loading') dot.classList.add('loading');
+            if (status === 'error') dot.classList.add('error');
+
+            statusText.textContent = text;
+        }
+
+        // Fetch rate from API
+        async function fetchRate() {
+            const btn = document.getElementById('refreshBtn');
+            btn.classList.add('loading');
+            btn.innerHTML = '<svg class="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Actualizando...';
+            setStatus('loading', 'Actualizando...');
+
+            const apis = [
+                {
+                    url: 'https://pydolarve.org/api/v1/dollar?page=bcv',
+                    parse: (data) => {
+                        if (data && data.monitors && data.monitors.usd) {
+                            return { price: data.monitors.usd.price, last_update: data.monitors.usd.last_update };
+                        }
+                        return null;
+                    }
+                },
+                {
+                    url: 'https://ve.dolarapi.com/v1/dolares/oficial',
+                    parse: (data) => {
+                        if (data && data.promedio) {
+                            return { price: data.promedio, last_update: data.fechaActualizacion };
+                        }
+                        return null;
+                    }
+                },
+                {
+                    url: 'https://api.exchangerate-api.com/v4/latest/USD',
+                    parse: (data) => {
+                        if (data && data.rates && data.rates.VES) {
+                            return { price: data.rates.VES, last_update: new Date().toISOString() };
+                        }
+                        return null;
+                    }
+                }
+            ];
+
+            let fetched = false;
+
+            for (const api of apis) {
+                try {
+                    const response = await fetch(api.url, { signal: AbortSignal.timeout(5000) });
+                    if (!response.ok) continue;
+                    const data = await response.json();
+                    const parsed = api.parse(data);
+                    if (parsed && parsed.price > 0) {
+                        updateRateDisplay(parsed.price, parsed.last_update || 'Reciente');
+                        fetched = true;
+                        showToast('Tasa actualizada correctamente', 'success');
+                        break;
+                    }
+                } catch (e) {
+                    continue;
+                }
+            }
+
+            if (!fetched) {
+                // Fallback rate
+                const fallbackRate = 85.50;
+                updateRateDisplay(fallbackRate, 'Tasa referencial');
+                showToast('Usando tasa referencial. No se pudo conectar al BCV.', 'error');
+            }
+
+            btn.classList.remove('loading');
+            btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Actualizar';
+        }
+
+        // Update rate display
+        function updateRateDisplay(rate, updateTime) {
+            currentRate = rate;
+            lastUpdateTime = updateTime;
+
+            const rateDisplay = document.getElementById('rateDisplay');
+            const parts = rate.toFixed(2).split('.');
+
+            rateDisplay.innerHTML = `
+                <div class="rate-value number-change">
+                    <span class="currency">Bs.</span>
+                    ${parts[0]}<span class="decimal">.${parts[1]}</span>
+                </div>
+                <div class="rate-subtitle">1 USD = ${formatNumber(rate)} Bs.</div>
+            `;
+
+            document.getElementById('lastUpdate').textContent = `Última actualización: ${updateTime}`;
+            setStatus('connected', 'En línea');
+
+            convertCurrency();
+        }
+
+        // Convert currency
+        function convertCurrency() {
+            const usdInput = document.getElementById('usdInput');
+            const resultValue = document.getElementById('resultValue');
+            const usdAmount = parseFloat(usdInput.value);
+
+            if (usdAmount > 0 && currentRate > 0) {
+                const bolivarAmount = usdAmount * currentRate;
+                resultValue.className = '';
+                resultValue.innerHTML = `${formatNumber(bolivarAmount)}`;
+            } else {
+                resultValue.className = 'result-empty';
+                resultValue.textContent = '0,00';
+            }
+        }
+
+        // Set quick amount
+        function setQuickAmount(amount) {
+            const usdInput = document.getElementById('usdInput');
+            usdInput.value = amount;
+            convertCurrency();
+        }
+
+        // Swap values (just a visual feedback)
+        function swapValues() {
+            const resultValue = document.getElementById('resultValue');
+            resultValue.classList.add('number-change');
+            setTimeout(() => resultValue.classList.remove('number-change'), 500);
+        }
+
+        // Apply manual rate
+        function applyManualRate() {
+            const manualInput = document.getElementById('manualRate');
+            const rate = parseFloat(manualInput.value);
+
+            if (rate > 0) {
+                updateRateDisplay(rate, 'Manual');
+                showToast(`Tasa personalizada aplicada: Bs. ${formatNumber(rate)}`, 'success');
+            } else {
+                showToast('Ingrese una tasa válida', 'error');
+            }
+        }
+
+        // Auto-refresh every 5 minutes
+        setInterval(fetchRate, 300000);
+
+        // Initial fetch
+        fetchRate();
+    </script>
+</body>
+</html>
+
