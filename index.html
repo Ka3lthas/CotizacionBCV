@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dólar BCV Venezuela - Tasa en Tiempo Real</title>
+    <title>Dólar DolarFlow Venezuela - Tasa en Tiempo Real</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
@@ -717,16 +717,16 @@
                 <span class="flag-blue"></span>
                 <span class="flag-red"></span>
             </div>
-            <h1>Tasa del Dólar BCV</h1>
-            <p>Conversión USD a Bolívares en tiempo real</p>
+            <h1>Tasa del Dólar</h1>
+            <p>Conversión USD a Bolívares en tiempo real desde DolarFlow</p>
         </header>
 
         <!-- Rate Card -->
         <div class="rate-card fade-in-delay">
             <div class="rate-header">
                 <div class="rate-label">
-                    <span class="bcv-badge">BCV</span>
-                    <span class="rate-title">Tasa de cambio oficial</span>
+                    <span class="bcv-badge">API</span>
+                    <span class="rate-title">Tasa de cambio oficial en tiempo real</span>
                 </div>
                 <div class="rate-status" id="rateStatus">
                     <span class="status-dot loading" id="statusDot"></span>
@@ -818,7 +818,7 @@
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                 </div>
                 <h3>Tasa Confiable</h3>
-                <p>Basada en BCV</p>
+                <p>Basada en DolarFlow</p>
             </div>
         </div>
 
@@ -839,8 +839,8 @@
 
         <!-- Footer -->
         <footer class="footer">
-            <p>Datos referenciales basados en la tasa oficial del BCV</p>
-            <p style="margin-top: 6px;">Los valores pueden variar. Consulte siempre fuentes oficiales.</p>
+            <p>Datos obtenidos desde DolarFlow</p>
+            <p style="margin-top: 6px;">Los valores pueden variar. Verifique siempre la conexión y la fuente.</p>
         </footer>
     </div>
 
@@ -889,74 +889,58 @@
             statusText.textContent = text;
         }
 
-        // Fetch rate from API
-        async function fetchRate() {
-            const btn = document.getElementById('refreshBtn');
-            btn.classList.add('loading');
-            btn.innerHTML = '<svg class="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Actualizando...';
-            setStatus('loading', 'Actualizando...');
+        
+// Fetch rate from API
+async function fetchRate() {
+    const btn = document.getElementById('refreshBtn');
+    btn.classList.add('loading');
+    btn.innerHTML = '<svg class="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Actualizando...';
+    setStatus('loading', 'Actualizando...');
 
-            const apis = [
-                {
-                    url: 'https://pydolarve.org/api/v1/dollar?page=bcv',
-                    parse: (data) => {
-                        if (data && data.monitors && data.monitors.usd) {
-                            return { price: data.monitors.usd.price, last_update: data.monitors.usd.last_update };
-                        }
-                        return null;
-                    }
-                },
-                {
-                    url: 'https://ve.dolarapi.com/v1/dolares/oficial',
-                    parse: (data) => {
-                        if (data && data.promedio) {
-                            return { price: data.promedio, last_update: data.fechaActualizacion };
-                        }
-                        return null;
-                    }
-                },
-                {
-                    url: 'https://api.exchangerate-api.com/v4/latest/USD',
-                    parse: (data) => {
-                        if (data && data.rates && data.rates.VES) {
-                            return { price: data.rates.VES, last_update: new Date().toISOString() };
-                        }
-                        return null;
-                    }
-                }
-            ];
+    const apiUrl = 'https://dolarflow.com/api/oficial/';
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-            let fetched = false;
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+            cache: 'no-store',
+            signal: controller.signal
+        });
 
-            for (const api of apis) {
-                try {
-                    const response = await fetch(api.url, { signal: AbortSignal.timeout(5000) });
-                    if (!response.ok) continue;
-                    const data = await response.json();
-                    const parsed = api.parse(data);
-                    if (parsed && parsed.price > 0) {
-                        updateRateDisplay(parsed.price, parsed.last_update || 'Reciente');
-                        fetched = true;
-                        showToast('Tasa actualizada correctamente', 'success');
-                        break;
-                    }
-                } catch (e) {
-                    continue;
-                }
-            }
-
-            if (!fetched) {
-                // Fallback rate
-                const fallbackRate = 85.50;
-                updateRateDisplay(fallbackRate, 'Tasa referencial');
-                showToast('Usando tasa referencial. No se pudo conectar al BCV.', 'error');
-            }
-
-            btn.classList.remove('loading');
-            btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Actualizar';
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
         }
 
-        // Update rate display
+        const data = await response.json();
+
+        if (!data || data.exito !== true || typeof data.precio !== 'number' || data.precio <= 0) {
+            throw new Error('Respuesta inválida de DolarFlow');
+        }
+
+        updateRateDisplay(data.precio, data.fechaActualizacion || 'Reciente');
+        showToast('Tasa actualizada correctamente', 'success');
+    } catch (error) {
+        setStatus('error', 'Error al cargar');
+        document.getElementById('lastUpdate').textContent = 'Última actualización: sin datos';
+        document.getElementById('rateDisplay').innerHTML = `
+            <div class="rate-value" style="font-size: 1.35rem; color: var(--warning); line-height: 1.4;">
+                No se pudo cargar la tasa
+            </div>
+            <div class="rate-subtitle">Verifica tu conexión a internet e inténtalo nuevamente</div>
+        `;
+        currentRate = 0;
+        document.getElementById('resultValue').className = 'result-empty';
+        document.getElementById('resultValue').textContent = '0,00';
+        showToast('No se pudo cargar la tasa desde DolarFlow. Verifica tu conexión e inténtalo nuevamente.', 'error');
+    } finally {
+        clearTimeout(timeoutId);
+        btn.classList.remove('loading');
+        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Actualizar';
+    }
+}
+
+// Update rate display
         function updateRateDisplay(rate, updateTime) {
             currentRate = rate;
             lastUpdateTime = updateTime;
@@ -1029,4 +1013,3 @@
     </script>
 </body>
 </html>
-
